@@ -37,7 +37,7 @@ def index():
     year = today.year
     month_days = generate_month_days(month, year)
 
-    return render_template('calendar.html', month_name=today.strftime('%B'), year=year, month=month, month_days=month_days)
+    return render_template('index.html', month_name=today.strftime('%B'), year=year, month=month, month_days=month_days)
 
 # Route for a specific day's to-do list
 @app.route('/todo/<int:month>/<int:year>/<int:day>', methods=['GET', 'POST'])
