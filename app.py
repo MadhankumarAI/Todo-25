@@ -8,7 +8,9 @@ from urllib.parse import urlparse
 app = Flask(__name__)
 
 # Configure database URI for PostgreSQL (Render)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://todo_cjrn_user:WYIB18RMzFaqZNABkS1huUHfjnSlE4bp@dpg-cu4e2ql6l47c73b22h00-a/todo_cjrn')
+# app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://todo_cjrn_user:WYIB18RMzFaqZNABkS1huUHfjnSlE4bp@dpg-cu4e2ql6l47c73b22h00-a/todo_cjrn')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://todo_cjrn_user:WYIB18RMzFaqZNABkS1huUHfjnSlE4bp@dpg-cu4e2ql6l47c73b22h00-a/todo_cjrn'
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialize the database
