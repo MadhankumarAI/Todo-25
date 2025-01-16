@@ -1,66 +1,84 @@
-from flask import Flask, request, render_template, redirect, url_for
+from flask import Flask, render_template, redirect, url_for, request
+from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
 import os
-import mysql.connector
 from urllib.parse import urlparse
 
+# Initialize Flask app and SQLAlchemy
 app = Flask(__name__)
 
-# Parse ClearDB URL from environment variable (for Heroku)
-db_url = urlparse(os.getenv('CLEARDB_DATABASE_URL', 'mysql://root:password@localhost/todo'))
+# Configure database URI for Heroku ClearDB or local database
+db_url = urlparse(os.getenv('CLEARDB_DATABASE_URL', 'mysql://flaskuser:password@localhost/todo_db'))
+app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql://{db_url.username}:{db_url.password}@{db_url.hostname}/{db_url.path[1:]}"
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Database configuration
-db_config = {
-    'host': db_url.hostname,
-    'user': db_url.username,
-    'password': db_url.password,
-    'database': db_url.path[1:],  # Remove leading '/'
-}
+# Initialize the database
+db = SQLAlchemy(app)
 
-# Initialize database connection
-def get_db_connection():
-    return mysql.connector.connect(**db_config)
+# Define the ToDo model
+class ToDo(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    task = db.Column(db.String(255), nullable=False)
+    date = db.Column(db.String(50), nullable=False)  # Date formatted as 'YYYY-MM-DD'
+
+    def __repr__(self):
+        return f'<ToDo {self.id} - {self.task}>'
 
 # Create tables if they don't exist
 def create_table():
-    connection = get_db_connection()
-    cursor = connection.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS todos (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        task VARCHAR(255) NOT NULL,
-        date DATE NOT NULL
-    )''')
-    connection.commit()
-    connection.close()
+    with app.app_context():
+        db.create_all()
 
-# Routes
+# Route for the calendar page
 @app.route('/')
 def index():
-    connection = get_db_connection()
-    cursor = connection.cursor(dictionary=True)
-    cursor.execute('SELECT * FROM todos ORDER BY date ASC')
-    todos = cursor.fetchall()
-    connection.close()
-    return render_template('index.html', todos=todos)
+    today = datetime.today()
+    month = today.month
+    year = today.year
+    month_days = generate_month_days(month, year)
 
-@app.route('/add', methods=['POST'])
-def add_todo():
-    task = request.form['task']
-    date = request.form['date']
-    connection = get_db_connection()
-    cursor = connection.cursor()
-    cursor.execute('INSERT INTO todos (task, date) VALUES (%s, %s)', (task, date))
-    connection.commit()
-    connection.close()
-    return redirect(url_for('index'))
+    return render_template('calendar.html', month_name=today.strftime('%B'), year=year, month=month, month_days=month_days)
 
-@app.route('/delete/<int:todo_id>')
-def delete_todo(todo_id):
-    connection = get_db_connection()
-    cursor = connection.cursor()
-    cursor.execute('DELETE FROM todos WHERE id = %s', (todo_id,))
-    connection.commit()
-    connection.close()
-    return redirect(url_for('index'))
+# Route for a specific day's to-do list
+@app.route('/todo/<int:month>/<int:year>/<int:day>', methods=['GET', 'POST'])
+def todo_list(month, year, day):
+    date_key = f"{year}-{month:02d}-{day:02d}"
+
+    # If POST request, add new to-do item
+    if request.method == 'POST':
+        task = request.form.get('task')
+        if task:
+            new_task = ToDo(task=task, date=date_key)
+            db.session.add(new_task)
+            db.session.commit()
+        return redirect(url_for('todo_list', month=month, year=year, day=day))
+
+    # Fetch all tasks for the selected date
+    tasks = ToDo.query.filter_by(date=date_key).all()
+
+    # Handle AJAX requests for dynamic content loading
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return render_template('todo.html', todos=tasks)
+
+    # Render the full page otherwise
+    return render_template('todo.html', month_name=str(month), year=year, day=day, todos=tasks)
+
+# Helper function to generate days for the current month
+def generate_month_days(month, year):
+    from calendar import monthrange
+    first_day, num_days = monthrange(year, month)
+    
+    month_days = []
+    week = [''] * first_day
+    for day in range(1, num_days + 1):
+        week.append(day)
+        if len(week) == 7:
+            month_days.append(week)
+            week = []
+    if week:
+        month_days.append(week)
+    
+    return month_days
 
 if __name__ == '__main__':
     create_table()
