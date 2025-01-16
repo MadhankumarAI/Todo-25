@@ -69,8 +69,10 @@ def delete_task(task_id):
     if task:
         db.session.delete(task)
         db.session.commit()
-        return jsonify({'success': True}), 200
-    return jsonify({'error': 'Task not found'}), 404
+        return jsonify({'message': 'Task deleted successfully'}), 200
+    else:
+        return jsonify({'message': 'Task not found'}), 404
+
 
 # Helper function to generate days for the current month
 def generate_month_days(month, year):
