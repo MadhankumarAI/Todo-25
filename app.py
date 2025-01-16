@@ -7,9 +7,8 @@ from urllib.parse import urlparse
 # Initialize Flask app and SQLAlchemy
 app = Flask(__name__)
 
-# Configure database URI for Heroku ClearDB or local database
-db_url = urlparse(os.getenv('CLEARDB_DATABASE_URL', 'mysql://flaskuser:password@localhost/todo_db'))
-app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql://{db_url.username}:{db_url.password}@{db_url.hostname}/{db_url.path[1:]}"
+# Configure database URI for PostgreSQL (Render)
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://todo_cjrn_user:WYIB18RMzFaqZNABkS1huUHfjnSlE4bp@dpg-cu4e2ql6l47c73b22h00-a/todo_cjrn')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialize the database
