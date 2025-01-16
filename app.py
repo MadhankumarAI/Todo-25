@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, request
+from flask import Flask, render_template, redirect, url_for, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import os
@@ -56,12 +56,21 @@ def todo_list(month, year, day):
     # Fetch all tasks for the selected date
     tasks = ToDo.query.filter_by(date=date_key).all()
 
-    # Handle AJAX requests for dynamic content loading
+    # Handle AJAX requests for task list
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return render_template('todo.html', todos=tasks)
+        return render_template('task_list.html', todos=tasks)
 
-    # Render the full page otherwise
     return render_template('todo.html', month_name=str(month), year=year, day=day, todos=tasks)
+
+# Route to delete a specific task
+@app.route('/delete-task/<int:task_id>', methods=['DELETE'])
+def delete_task(task_id):
+    task = ToDo.query.get(task_id)
+    if task:
+        db.session.delete(task)
+        db.session.commit()
+        return jsonify({'success': True}), 200
+    return jsonify({'error': 'Task not found'}), 404
 
 # Helper function to generate days for the current month
 def generate_month_days(month, year):
