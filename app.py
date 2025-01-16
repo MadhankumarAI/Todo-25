@@ -94,4 +94,5 @@ def generate_month_days(month, year):
 
 if __name__ == '__main__':
     create_table()
-    app.run(debug=False)
+    app.run(host='0.0.0.0', port=5000, debug=False)
+
